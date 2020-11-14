@@ -1,0 +1,37 @@
+# This file tires to build with available conda
+
+FROM nvcr.io/nvidia/pytorch:20.10-py3
+
+ENV SHELL=/bin/bash
+ENV TZ=Europe/Stockholm
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+USER root
+
+RUN apt update && apt install -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    tmux \
+    sudo \
+    ssh \
+    nano \
+    mysql-client \
+    libpq-dev \
+    git \
+    vim \
+    wget \
+    curl \
+    sqlite \
+    sqlite3 \
+    libgl1-mesa-glx
+
+WORKDIR /workspace
+
+RUN conda update conda && conda create -n py38 python=3.8 anaconda
+SHELL ["conda", "run", "-n", "py38", "/bin/bash", "-c"]
+RUN conda install -y matplotlib numpy pandas pillow scikit-image scikit-learn scipy seaborn tqdm 
+
+RUN conda install -y -c conda-forge albumentations opencv
+
+SHELL ["/bin/sh", "-c"]
+RUN echo "Finished"
