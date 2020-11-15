@@ -48,6 +48,7 @@ class AllChannelTester:
 
     def test(self, dataloader, models):
         self.load_models(models)
+        model_time_desc = tqdm(total=0, position=1, bar_format="{desc}")
         with torch.no_grad():
             for batch_idx, sample in enumerate(tqdm(dataloader)):
                 input = sample[0].cuda().to(non_blocking=True)
@@ -81,7 +82,10 @@ class AllChannelTester:
 
                 t1 = time.time()
                 output_C1, output_C2, output_C3 = self.infer_all_channels(input)
-                print(time.time() - t1)
+                model_time_desc.set_description_str(
+                    f"Time taken to infer 3 channels:{time.time() - t1}"
+                )
+                # print(f"Time taken to infer 3 channels:{time.time() - t1})
 
                 output = torch.cat([output_C1, output_C2, output_C3], dim=1)
                 self.write_output_images(
