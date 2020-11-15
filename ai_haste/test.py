@@ -25,11 +25,6 @@ def run(config):
                 "model": getattr(model, model_config["type"])(**model_config["args"]),
             }
         )
-    # for model_name in config["models"]:
-    #     save_folder += "_" + model_name["type"]
-    #     models.append(getattr(model, model_name["type"])(**model_name["args"]))
-    # if not os.path.exists(save_folder):
-    #     os.makedirs(save_folder)
 
     tester.run(config["test"], test_dataloader, models, output_save_folder)
 

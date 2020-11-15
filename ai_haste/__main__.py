@@ -10,7 +10,8 @@ import ai_haste.train as train
 import ai_haste.test as test
 import ai_haste.exploratory_analysis as exp_analysis
 
-
+os.environ["DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["PYTHONHASHSEED"] = str(42)
 random.seed(42)
 np.random.seed(42)

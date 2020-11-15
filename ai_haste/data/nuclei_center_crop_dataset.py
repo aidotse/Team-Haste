@@ -19,13 +19,27 @@ fluorecscent_means_40x = np.array(stats_40x.iloc[:3]["mean"])
 brighfield_means_60x = np.array(stats_60x.iloc[3:]["mean"])
 fluorecscent_means_60x = np.array(stats_60x.iloc[:3]["mean"])
 
+centers = pd.read_csv("exp_stats/nuclei_centers.csv")
+centers["brightfield"] = centers["brightfield"].apply(
+    lambda x: x.replace(".tiff", ".tif")
+)
+centers["C1"] = centers["C1"].apply(lambda x: x.replace(".tiff", ".tif"))
 
-class BaseDataset(Dataset):
+
+class CenterCropSegmentDataset(Dataset):
     def __init__(self, config, csv_file, augment=True):
         self.folder = config["folder"]
         self.standardize = config["standardize"]
         self.normalize = config["normalize"]
-        self.data = pd.read_csv(csv_file)
+        self.crop_size = config["crop_size"]
+        data = pd.read_csv(csv_file)
+
+        if augment:
+            self.data = centers[
+                centers["brightfield"].isin(list(data["brightfield"]))
+            ].reset_index(drop=True)
+        else:
+            self.data = data
 
         if config["magnification"] != "all":
             self.data = self.data[
@@ -64,18 +78,32 @@ class BaseDataset(Dataset):
             target_path = os.path.join(self.folder, mag_path, target_name,)
             target = cv2.imread(target_path, -1).astype("float")
 
-        else:
-            channels = ("C1", "C2", "C3")
-            target_name = []
-            target_stack = []
-            for channel in channels:
-                channel_name = self.data.iloc[[idx]][channel].item()
-                target_name.append(channel_name)
-                target_stack.append(
-                    cv2.imread(os.path.join(self.folder, mag_path, channel_name), -1,)
-                )
-            target = np.array(target_stack).transpose(1, 2, 0).astype("float")
+            mask_mag_path = magnification + "_images"
+            mask_path = os.path.join(
+                self.folder,
+                "masks",
+                mask_mag_path,
+                self.data.iloc[[idx]][self.output_channel]
+                .item()
+                .replace(".tif", ".tiff"),
+            )
+            mask = cv2.imread(mask_path, -1)
+            if self.output_channel == "C1":
+                mask[mask > 0] = 1
 
+        ## Crop around nuclei
+        if self.augmentations:
+            r = self.data.iloc[[idx]]["center_r"].item()
+            c = self.data.iloc[[idx]]["center_c"].item()
+            patch_loc = [
+                r - int(self.crop_size[0] / 2),
+                c - int(self.crop_size[1] / 2),
+                r + int(self.crop_size[0] / 2),
+                c + int(self.crop_size[1] / 2),
+            ]
+            image = get_patch(image, patch_loc)
+            target = get_patch(target, patch_loc)
+            mask = get_patch(mask, patch_loc)
         ## Standardization and Normalization
 
         if self.normalize:
@@ -93,41 +121,24 @@ class BaseDataset(Dataset):
                     self.fluorecscent_min[channel_idx],
                     self.fluorecscent_max[channel_idx],
                 )
-            else:
-                preprocess_stats = [
-                    self.fluorecscent_min,
-                    self.fluorecscent_max,
-                ]
-                target = normalize_image(
-                    target, self.fluorecscent_min, self.fluorecscent_max
-                )
         else:
             if self.standardize:
                 preprocess_step = "standardize"
                 image = (image - self.brightfield_means) / self.brightfield_stds
                 if self.output_channel != "all":
-                    channel_idx = channel_name_to_idx(self.output_channel)
                     preprocess_stats = [
                         self.fluorecscent_means[channel_idx],
                         self.fluorecscent_stds[channel_idx],
                     ]
+                    channel_idx = channel_name_to_idx(self.output_channel)
                     target = (
                         target - self.fluorecscent_means[channel_idx]
                     ) / self.fluorecscent_stds[channel_idx]
 
-                else:
-                    preprocess_stats = [
-                        self.fluorecscent_means,
-                        self.fluorecscent_stds,
-                    ]
-                    target = (target - self.fluorecscent_means) / self.fluorecscent_stds
-            else:
-                preprocess_step = None
-                image = image / 65536
-
             target = target / 65536
 
         ## Augmentations
+        target = np.dstack((mask, target))
 
         if self.augmentations:
             augmented = self.augmentations(image=image, mask=target)
@@ -139,8 +150,14 @@ class BaseDataset(Dataset):
             target = target.transpose(2, 0, 1).astype(np.float32)
         else:
             target = target[np.newaxis, ...].astype(np.float32)
-
-        return image, target, target_name, preprocess_step, preprocess_stats
+        return (
+            image,
+            target,
+            target_name,
+            preprocess_step,
+            preprocess_stats,
+            magnification,
+        )
 
     def getstats(self, magnification):
         if magnification == "20x":
@@ -177,7 +194,6 @@ class BaseDataset(Dataset):
 def normalize_image(image, min_cutoff=None, max_cutoff=None):
     image_norm = np.array((image - min_cutoff) / (max_cutoff - min_cutoff))
     image_norm = np.clip(image_norm, 0, 1)
-
     return image_norm
 
 
@@ -204,9 +220,45 @@ def channel_name_to_idx(channel_name):
 
 def load_augmentations(augentations):
     augs = []
-
     for augment_type in augentations:
-
         augs.append(getattr(album, augment_type["type"])(**augment_type["args"]))
 
     return album.Compose(augs)
+
+
+def get_patch(image, patch_loc):
+    img_shape = image.shape
+    if patch_loc[0] < 0:
+        pad_top = 0 - patch_loc[0]
+        x1 = 0
+    else:
+        pad_top = 0
+        x1 = patch_loc[0]
+    if patch_loc[1] < 0:
+        pad_left = 0 - patch_loc[1]
+        y1 = 0
+    else:
+        pad_left = 0
+        y1 = patch_loc[1]
+    if patch_loc[2] > img_shape[0] - 1:
+        pad_bottom = patch_loc[2] - (img_shape[0] - 1)
+        x2 = img_shape[0] - 1
+    else:
+        pad_bottom = 0
+        x2 = patch_loc[2]
+    if patch_loc[3] > img_shape[1] - 1:
+        pad_right = patch_loc[3] - (img_shape[1] - 1)
+        y2 = img_shape[1] - 1
+    else:
+        pad_right = 0
+        y2 = patch_loc[3]
+
+    if len(image.shape) > 2:
+        patch = image[x1:x2, y1:y2, :]
+        patch = np.pad(
+            patch, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), "reflect",
+        )
+    else:
+        patch = image[x1:x2, y1:y2]
+        patch = np.pad(patch, ((pad_top, pad_bottom), (pad_left, pad_right)), "reflect")
+    return patch

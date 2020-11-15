@@ -330,16 +330,6 @@ class CustomLUPILWMTrainer:
             stride=(stride, stride),
         )
         mask_op = torch.divide(mask_op, weights_mask_op)
-        # op = op.view(C_out, n_w, n_h, w, h)
-        # mask_op = mask_op.view(C_mask_out, n_w, n_h, w, h)
-
-        # output_h = n_w * w
-        # output_w = n_h * h
-        # op = op.permute(0, 1, 3, 2, 4).contiguous()
-        # mask_op = mask_op.permute(0, 1, 3, 2, 4).contiguous()
-
-        # op = op.view(C_out, output_h, output_w)
-        # mask_op = mask_op.view(C_mask_out, output_h, output_w)
 
         output = torch.clamp(op, 0.0, 1.0)
         mask_op = mask_op.argmax(dim=1).unsqueeze(1)
