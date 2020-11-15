@@ -32,7 +32,7 @@ class AllChannelTester:
         self.c_out = 1
         self.kernel_size = 512
         self.stride = 256
-        self.patch_batch_size = 8
+        self.patch_batch_size = 1
 
     def load_models(self, models_dict):
         self.models = []
@@ -56,18 +56,101 @@ class AllChannelTester:
 
                 input = sample[0].cuda().to(non_blocking=True)
 
-                output, mask_op_softmax = self.infer_all_channels(input)
+                output_C1, output_C2, output_C3 = self.infer_all_channels1(input)
 
-                # self.write_output_images(
-                #     output[0],
-                #     target[0],
-                #     output_mask[0],
-                #     mask[0],
-                #     image_name,
-                #     preprocess_step[0],
-                #     preprocess_stats,
-                #     magnification[0],
-                # )
+                self.write_output_images(
+                    output[0],
+                    image_name,
+                    preprocess_step[0],
+                    preprocess_stats,
+                    magnification[0],
+                )
+
+    def infer_all_channels1(self, input):
+        with torch.no_grad():
+            B, C, W, H = input.shape
+            pad_W = self.kernel_size - W % self.kernel_size
+            pad_H = self.kernel_size - H % self.kernel_size
+
+            input = F.pad(input, (0, pad_H, 0, pad_W), mode="reflect").squeeze(0)
+            _, W_padded, H_padded = input.shape
+            patches = input.unfold(1, self.kernel_size, self.stride).unfold(
+                2, self.kernel_size, self.stride
+            )
+            c, n_w, n_h, w, h = patches.shape
+            patches = patches.contiguous().view(c, -1, self.kernel_size, self.kernel_size)
+
+            fold = torch.nn.Fold(
+                output_size=(W_padded, H_padded),
+                kernel_size=(self.kernel_size, self.kernel_size),
+                stride=(self.stride, self.stride),
+            )
+
+            patch_weights, _, _ = compute_pyramid_patch_weight_loss(
+                self.kernel_size, self.kernel_size
+            )
+            weights_op = (
+                torch.from_numpy(patch_weights)
+                .unsqueeze(0)
+                .unsqueeze(-1)
+                .repeat(1, self.c_out, 1, n_w * n_h)
+                .reshape(1, -1, n_w * n_h)
+            ).cuda()
+
+            dataset = torch.utils.data.TensorDataset(patches.permute(1, 0, 2, 3))
+            batch_size = 1
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
+            s1 = torch.cuda.Stream()
+            s2 = torch.cuda.Stream()
+            s3 = torch.cuda.Stream()
+
+            torch.cuda.synchronize()
+            with torch.cuda.stream(s1):
+                c1_ops = []
+                for batch_idx, sample_patch in enumerate(dataloader):
+                    _, c1_op = self.models[0](sample_patch[0])
+                    c1_ops.append(c1_op)
+
+                c1_ops = torch.cat(c1_ops).permute(1, 0, 2, 3)
+                c1_ops = c1_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
+                c1_ops = torch.mul(weights_op, c1_ops)
+                c1_ops = fold(c1_ops)
+
+                weights_op = fold(weights_op)
+                c1_ops = torch.divide(c1_ops, weights_op)
+                c1_ops = c1_ops[:, :, :W, :H]
+
+            with torch.cuda.stream(s2):
+                c2_ops = []
+                for batch_idx, sample_patch in enumerate(dataloader):
+                    c2_op = self.models[1](sample_patch[0])
+                    c2_ops.append(c2_op)
+
+                c2_ops = torch.cat(c2_ops).permute(1, 0, 2, 3)
+                c2_ops = c2_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
+                c2_ops = torch.mul(weights_op, c2_ops)
+                c2_ops = fold(c2_ops)
+
+                weights_op = fold(weights_op)
+                c2_ops = torch.divide(c2_ops, weights_op)
+                c2_ops = c2_ops[:, :, :W, :H]
+
+            with torch.cuda.stream(s3):
+                c3_ops = []
+                for batch_idx, sample_patch in enumerate(dataloader):
+                    c3_op = self.models[2](sample_patch[0])
+                    c3_ops.append(c3_op)
+                c3_ops = torch.cat(c3_ops).permute(1, 0, 2, 3)
+                c3_ops = c3_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
+                c3_ops = torch.mul(weights_op, c3_ops)
+                c3_ops = fold(c3_ops)
+
+                weights_op = fold(weights_op)
+                c3_ops = torch.divide(c3_ops, weights_op)
+                c3_ops = c3_ops[:, :, :W, :H]
+
+            torch.cuda.synchronize()
+        return c1_ops, c2_ops, c3_ops
 
     def infer_all_channels(self, input):
         with torch.no_grad():
@@ -102,7 +185,9 @@ class AllChannelTester:
 
             dataset = torch.utils.data.TensorDataset(patches.permute(1, 0, 2, 3))
             batch_size = 1
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
+            dataloader = torch.utils.data.DataLoader(
+                dataset, batch_size=self.patch_batch_size
+            )
 
             c1_ops = []
             c2_ops = []
@@ -144,23 +229,8 @@ class AllChannelTester:
         return c1_ops, c2_ops, c3_ops
 
     def write_output_images(
-        self,
-        output,
-        target,
-        output_mask,
-        target_mask,
-        image_name,
-        preprocess_step,
-        preprocess_stats,
-        magnification,
+        self, output, image_name, preprocess_step, preprocess_stats, magnification,
     ):
-        image_save_folder = os.path.join(self.image_folder, f"{magnification}_images")
-        if not os.path.exists(image_save_folder):
-            os.makedirs(image_save_folder)
-        mask_save_folder = os.path.join(self.image_folder, f"{magnification}_images")
-        if not os.path.exists(mask_save_folder):
-            os.makedirs(mask_save_folder)
-
         if preprocess_step == "normalize":
             min = preprocess_stats[0].cuda()
             max = preprocess_stats[1].cuda()
