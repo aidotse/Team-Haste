@@ -72,7 +72,7 @@ python3 -m ai_haste -c configs/test/test_60x.json
 Training can be performed by changing selecting the data folders and magnifications and changing "run_mode" to "train" in the config and executed by
 
 ```
-python3 -m ai_haste -c /configs/train/C1/C1_20x.json 
-python3 -m ai_haste -c /configs/train/C2/C2_20x_pretrain.json 
-python3 -m ai_haste -c /configs/train/C1/C3_20x_pretrain.json 
+python3 -m ai_haste -c configs/train/C1/C1_20x.json 
+python3 -m ai_haste -c configs/train/C2/C2_20x_pretrain.json 
+python3 -m ai_haste -c configs/train/C1/C3_20x_pretrain.json 
 ```
