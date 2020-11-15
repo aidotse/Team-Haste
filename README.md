@@ -76,3 +76,6 @@ python3 -m ai_haste -c configs/train/C1/C1_20x.json
 python3 -m ai_haste -c configs/train/C2/C2_20x_pretrain.json 
 python3 -m ai_haste -c configs/train/C1/C3_20x_pretrain.json 
 ```
+### Models
+Trained models can be found here: 
+https://drive.google.com/drive/u/0/folders/1E_Ekf-aOR8YYvodQNVXshK5WEzhSsu5k 
