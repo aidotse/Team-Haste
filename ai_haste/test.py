@@ -15,6 +15,7 @@ def run(config):
     if not os.path.exists(exp_folder):
         os.makedirs(exp_folder)
     magnification = config["data"]["magnification"]
+    
     output_save_folder = os.path.join(exp_folder, f"{magnification}_images")
     if not os.path.exists(output_save_folder):
         os.makedirs(output_save_folder)
