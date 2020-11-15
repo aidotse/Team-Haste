@@ -262,7 +262,7 @@ class DenseUNet(BaseModel):
         transition_pooling="max",
         batch_norm="batchnorm",
         include_top=True,
-        activation_func=nn.Sigmoid(),  # tanh_scaled
+        activation_func=tanh_scaled,
         efficient=False,
     ):
         """ Creates a Tiramisu/Fully Convolutional DenseNet Neural Network for

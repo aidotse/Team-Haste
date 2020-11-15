@@ -1,15 +1,16 @@
 {
-    "gpu_device": "0,1,2,3",
-    "exp_folder": "outputs",
+    "gpu_device": "0",
+    "exp_folder": "/workspace/outputs",
     "run_mode": "test",
     "test": {
         "tester": "AllChannelTester",
-        "output_folder": "output",
-        "model_path": "model_best_loss.pth"
+        "kernel_shape": 512,
+        "stride": 256,
+        "patch_batch_size": 8
     },
     "models": [
         {
-            "path": "models/C1_20x.pth",
+            "path": "models/C1_40x.pth",
             "type": "DenseUNetLUPISkipSum",
             "args": {
                 "in_channels": 7,
@@ -43,7 +44,7 @@
             }
         },
         {
-            "path": "models/C2_20x.pth",
+            "path": "models/C2_40x.pth",
             "type": "DenseUNet",
             "args": {
                 "in_channels": 7,
@@ -76,7 +77,7 @@
             }
         },
         {
-            "path": "models/C3_20x.pth",
+            "path": "models/C3_40x.pth",
             "type": "DenseUNet",
             "args": {
                 "in_channels": 7,
@@ -115,12 +116,8 @@
             512,
             512
         ],
-        "folder": "/mnt/hdd2/datasets/astra_data_readonly/astra_data_readonly/",
-        "train_csv_file": "exp_stats/final_train.csv",
-        "valid_csv_file": "exp_stats/final_test.csv",
-        "test_csv_file": "exp_stats/test_split_1.csv",
-        "magnification": "20x",
-        "output_channel": "C1",
+        "folder": "/workspace/test",
+        "magnification": "40x",
         "batch_size": 4,
         "shuffle": true,
         "standardize": false,

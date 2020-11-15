@@ -1,11 +1,12 @@
 {
-    "gpu_device": "0,1,2,3",
-    "exp_folder": "outputs",
+    "gpu_device": "0",
+    "exp_folder": "/workspace/outputs",
     "run_mode": "test",
     "test": {
         "tester": "AllChannelTester",
-        "output_folder": "output",
-        "model_path": "model_best_loss.pth"
+        "kernel_shape": 512,
+        "stride": 256,
+        "patch_batch_size": 8
     },
     "models": [
         {
@@ -115,7 +116,7 @@
             512,
             512
         ],
-        "folder": "/mnt/hdd2/datasets/astra_data_readonly/astra_data_readonly/",
+        "folder": "/workspace/astra_data_readonly/",
         "train_csv_file": "exp_stats/final_train.csv",
         "valid_csv_file": "exp_stats/final_test.csv",
         "test_csv_file": "exp_stats/test_split_1.csv",

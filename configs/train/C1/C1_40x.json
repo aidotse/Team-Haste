@@ -1,7 +1,7 @@
 {
-    "gpu_device": "0,1,2,3",
-    "exp_folder": "/mnt/hdd1/users/aktgpt/ai_haste_results/lupi_nuclei",
-    "run_mode": "test",
+    "gpu_device": "0",
+    "exp_folder": "exps",
+    "run_mode": "train",
     "test": {
         "tester": "LUPITester",
         "model_path": "model_best_loss.pth"
@@ -9,8 +9,8 @@
     "train": {
         "trainer": "CustomLUPILWMTrainer",
         "gradient_accumulation": null,
-        "save_name": "test",
-        "model_path": "/mnt/hdd1/users/aktgpt/ai_haste_results/lupi_nuclei/all_C1_LUPISegmentationTrainer_1.0_WeightedBCELogitsLoss_1.0_L1Loss_1.0_GradientLoss_patches_512_DenseUNetLUPI/model_best_loss.pth",
+        "save_name": "",
+        "model_path": "",
         "resume_training": false,
         "epochs": 30,
         "save_interval": 1,
@@ -84,14 +84,14 @@
         }
     ],
     "data": {
-        "dataset": "BaseDataset",
+        "dataset": "CenterCropSegmentDataset",
         "crop_size": [
             512,
             512
         ],
-        "folder": "/mnt/hdd2/datasets/astra_data_readonly/astra_data_readonly/",
-        "train_csv_file": "exp_stats/final_train.csv",
-        "valid_csv_file": "exp_stats/final_test.csv",
+        "folder": "/workspace/astra_data_readonly",
+        "train_csv_file": "exp_stats/train_split_1.csv",
+        "valid_csv_file": "exp_stats/test_split_1.csv",
         "test_csv_file": "exp_stats/test_split_1.csv",
         "magnification": "40x",
         "output_channel": "C1",

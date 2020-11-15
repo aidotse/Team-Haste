@@ -74,7 +74,7 @@ class BaseTestDataset(Dataset):
         for channel in channels:
             channel_name = self.data.iloc[[idx]][channel].item()
             target_name.append(channel_name)
-        
+
         ## Standardization and Normalization
         if self.normalize:
             image = normalize_image(image, self.brightfield_min, self.brightfield_max)
