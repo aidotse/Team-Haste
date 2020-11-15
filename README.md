@@ -47,3 +47,22 @@ On AZ server:
 
 ### Connect to the kernel
 `sudo docker run -it 3h4m/haste bash`
+
+```
+## Running inference
+
+To run the inference you run ai_haste as a module while specifying which config file to use. All configs for inference are located in the "config/test" folder for the different magnifications. The module will run inference on all models (1 model per channel) at the same time and write the result in a pre-specified output folder.
+
+To begin, download the models and put them in the "models" folder. Then edit each config file in $config/test$ and specify the data path and the output path.
+
+config
+│── "test"             
+│   ├── "output_folder":"output" <--- Path to output folder goes here
+│   │
+│── "data"             
+│   ├── "folder":"" <--- Path to data folder goes here
+
+Inference is then executed by:
+`python3 -m ai_haste -c config_test_20x.json` <- for 20x
+`python3 -m ai_haste -c config_test_40x.json` <- for 40x
+`python3 -m ai_haste -c config_test_60x.json` <- for 60x
