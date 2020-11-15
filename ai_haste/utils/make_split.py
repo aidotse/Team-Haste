@@ -1,4 +1,4 @@
-from .read_images import YokogawaDataProcessor
+from .read_images import DataProcessor
 import pandas as pd
 import operator
 from itertools import groupby
@@ -9,17 +9,17 @@ class DataSplitter:
     def __init__(self, data_folder, save_folder):
         self.magnifications = ("20x", "40x", "60x")
         self.mag_folders = [
-            os.path.join(data_folder, f"{mag}_images") for mag in self.magnifications
+            os.path.join(data_folder, f"{mag}_images") for mag in self.magnifications 
         ]
         self.save_folder = save_folder
-
+        
     def make_split(self):
         n_splits = 8
         train_splits = [[] for i in range(n_splits)]
         test_splits = [[] for i in range(n_splits)]
         for i, mag_folder in enumerate(self.mag_folders):
             magnification = self.magnifications[i]
-            folder_processor = YokogawaDataProcessor(mag_folder)
+            folder_processor = DataProcessor(mag_folder)
 
             for i in range(n_splits):
                 well_images, _ = folder_processor.group_channels()
@@ -38,8 +38,12 @@ class DataSplitter:
         for i in range(n_splits):
             train_df = pd.concat(train_splits[i]).reset_index(drop=True)
             test_df = pd.concat(test_splits[i])
-            train_df.to_csv(os.path.join(self.save_folder, f"train_split_{i+1}.csv"), index=False)
-            test_df.to_csv(os.path.join(self.save_folder, f"test_split_{i+1}.csv"), index=False)
+            train_df.to_csv(
+                os.path.join(self.save_folder, f"train_split_{i+1}.csv"), index=False
+            )
+            test_df.to_csv(
+                os.path.join(self.save_folder, f"test_split_{i+1}.csv"), index=False
+            )
 
 
 def groupby_fov(images):

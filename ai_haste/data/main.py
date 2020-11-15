@@ -7,25 +7,31 @@ import random
 import numpy as np
 
 
-def run(config):
-    train_dataset = getattr(data, config["dataset"])(config, config["train_csv_file"])
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=config["batch_size"],
-        worker_init_fn=worker_init_fn,
-        num_workers=8,
-        shuffle=True,
-    )
-    valid_dataset = getattr(data, config["dataset"])(
-        config, config["valid_csv_file"], augment=False
-    )
+def run(config, run_mode):
+    if run_mode == "train":
+        train_dataset = getattr(data, config["dataset"])(config, config["train_csv_file"])
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=config["batch_size"],
+            worker_init_fn=worker_init_fn,
+            num_workers=8,
+            shuffle=True,
+        )
+        valid_dataset = getattr(data, config["dataset"])(
+            config, config["valid_csv_file"], augment=False
+        )
 
-    valid_dataloader = DataLoader(valid_dataset, batch_size=1, num_workers=2)
-    test_dataset = getattr(data, config["dataset"])(
-        config, config["test_csv_file"], augment=False
-    )
-    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=2)
-    return train_dataloader, valid_dataloader, test_dataloader
+        valid_dataloader = DataLoader(valid_dataset, batch_size=1, num_workers=2)
+
+        test_dataset = getattr(data, config["dataset"])(
+            config, config["test_csv_file"], augment=False
+        )
+        test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=2)
+        return train_dataloader, valid_dataloader, test_dataloader
+    else:
+        test_dataset = getattr(data, config["dataset"])(config)
+        test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=2)
+        return test_dataloader
 
 
 def worker_init_fn(worker_id=42):

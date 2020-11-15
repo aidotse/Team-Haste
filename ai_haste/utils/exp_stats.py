@@ -2,7 +2,7 @@ import os
 
 import cv2
 import numpy as np
-from .read_images import YokogawaDataProcessor
+from .read_images import DataProcessor
 import pandas as pd
 
 
@@ -15,8 +15,10 @@ class ExperimentStatsGetter:
         self.mag_images = []
         self.channel_maps = []
         for i, mag_folder in enumerate(self.mag_folders):
-            folder_processor = YokogawaDataProcessor(mag_folder)
-            well_images, channel_map = folder_processor.group_channels(groupby_prop=("well", "F"))
+            folder_processor = DataProcessor(mag_folder)
+            well_images, channel_map = folder_processor.group_channels(
+                groupby_prop=("well", "F")
+            )
             self.mag_images.append(well_images)
             self.channel_maps.append(channel_map)
         self.save_folder = save_folder
@@ -35,7 +37,8 @@ class ExperimentStatsGetter:
                         & (np.array(channel_map[2]) == channel_name["Z"])
                     )[0][0]
                     channel = cv2.imread(
-                        os.path.join(channel_name["folder"], channel_name["imagename"]), -1,
+                        os.path.join(channel_name["folder"], channel_name["imagename"]),
+                        -1,
                     )
                     all_well_images[j][channel_idx] = channel
 
@@ -59,7 +62,8 @@ class ExperimentStatsGetter:
                 }
             )
             df.to_csv(
-                os.path.join(self.save_folder, f"{self.magnifications[i]}_stats.csv"), index=False
+                os.path.join(self.save_folder, f"{self.magnifications[i]}_stats.csv"),
+                index=False,
             )
 
     # def get_channel_correlation(self, image):

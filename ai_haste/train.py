@@ -5,12 +5,12 @@ import ai_haste.loss as loss
 import ai_haste.model as model
 
 from .data import main as data
-from .test import main as test
-from .train import main as train
+from .tester import main as test
+from .trainer import main as train
 
 
 def run(config):
-    train_dataloader, valid_dataloader, test_dataloader = data.run(config["data"])
+    train_dataloader, valid_dataloader, test_dataloader = data.run(config["data"], config["run"])
     exp_folder = config["exp_folder"]
     if not os.path.exists(exp_folder):
         os.makedirs(exp_folder)

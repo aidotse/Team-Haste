@@ -3,25 +3,21 @@ import json
 import os
 import random
 
-import setproctitle
 import torch
 import numpy as np
 
-import ai_haste.main as main
+import ai_haste.train as train
+import ai_haste.test as test
 import ai_haste.exploratory_analysis as exp_analysis
 
-setproctitle.setproctitle("4 more years!!")
 
-os.environ["DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-# os.environ["PYTHONHASHSEED"] = str(42)
-# random.seed(42)
-# np.random.seed(42)
-# torch.manual_seed(42)
-# torch.cuda.manual_seed(42)
-# torch.cuda.manual_seed_all(42)
-# torch.backends.cudnn.deterministic = True
+os.environ["PYTHONHASHSEED"] = str(42)
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+torch.backends.cudnn.deterministic = True
 
 
 if __name__ == "__main__":
@@ -29,7 +25,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         "-c",
         "--conf",
-        default="config_nuclei_lupi_lwm.json",
+        default="configs/config_test_20x.json",
         help="path to configuration file",
     )
     args = argparser.parse_args()
@@ -38,5 +34,9 @@ if __name__ == "__main__":
         config = json.loads(config_buffer.read())
     os.environ["CUDA_VISIBLE_DEVICES"] = config["gpu_device"]
     # exp_analysis.run(config)
-    main.run(config)
+    assert config["run_mode"] in ["train", "test",], "run option does not exist."
 
+    if config["run_mode"] == "train":
+        train.run(config)
+    elif config["run_mode"] == "test":
+        test.run(config)

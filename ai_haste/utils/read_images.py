@@ -30,7 +30,7 @@ def get_images_from_folder(image_source):
     return image_list
 
 
-class YokogawaDataProcessor:
+class DataProcessor:
     def __init__(self, image_source):
         self.image_source = image_source
         # data_folders = read_multiple_datasets(image_source)[:3]
@@ -93,3 +93,46 @@ class YokogawaDataProcessor:
         # if len(channel_idx) != len(set(channel_idx)):
         #     print("something is fishy")
         return channels, channel_idx, z_idx
+
+
+def groupby_fov(images):
+    grouper = operator.itemgetter("well", "F")
+    images.sort(key=grouper)
+    grouped_images = []
+    for _, v in groupby(images, key=grouper):
+        grouped_images.append(list(v))
+    return grouped_images
+
+
+def make_df(grouped_images, magnification):
+    magnifications = []
+    folders = []
+    brightfield = []
+    c1 = []
+    c2 = []
+    c3 = []
+    for fov in grouped_images:
+        magnifications.append(magnification)
+        folders.append(fov[0]["folder"])
+        for image in fov:
+            if image["C"] == "01":
+                c1.append(image["imagename"])
+            elif image["C"] == "02":
+                c2.append(image["imagename"])
+            elif image["C"] == "03":
+                c3.append(image["imagename"])
+
+            elif image["C"] == "04" and image["Z"] == "01":
+                brightfield.append(image["imagename"])
+
+    df = pd.DataFrame(
+        {
+            "magnification": magnifications,
+            "folder": folders,
+            "brightfield": brightfield,
+            "C1": c1,
+            "C2": c2,
+            "C3": c3,
+        }
+    )
+    return df

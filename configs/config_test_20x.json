@@ -1,0 +1,133 @@
+{
+    "gpu_device": "0,1,2,3",
+    "exp_folder": "outputs",
+    "run_mode": "test",
+    "test": {
+        "tester": "AllChannelTester",
+        "output_folder": "output",
+        "model_path": "model_best_loss.pth"
+    },
+    "models": [
+        {
+            "name": "20x_c1",
+            "path": "models/C1_20x.pth",
+            "type": "DenseUNetLUPISkipSum",
+            "args": {
+                "in_channels": 7,
+                "nb_classes": 1,
+                "nb_seg_classes": 2,
+                "init_conv_size": 3,
+                "init_conv_filters": 32,
+                "init_conv_stride": 1,
+                "down_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "bottleneck_layers": 4,
+                "up_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "growth_rate": 12,
+                "compression": 1.0,
+                "dropout_rate": 0.2,
+                "upsampling_type": "pixelshuffle_blur",
+                "early_transition": false,
+                "transition_pooling": "max",
+                "batch_norm": "batchnorm",
+                "include_top": true,
+                "efficient": false
+            }
+        },
+        {
+            "name": "20x_c2",
+            "path": "models/C2_20x.pth",
+            "type": "DenseUNet",
+            "args": {
+                "in_channels": 7,
+                "nb_classes": 1,
+                "init_conv_size": 3,
+                "init_conv_filters": 48,
+                "init_conv_stride": 1,
+                "down_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "bottleneck_layers": 4,
+                "up_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "growth_rate": 12,
+                "compression": 1.0,
+                "dropout_rate": 0.2,
+                "upsampling_type": "pixelshuffle_blur",
+                "early_transition": false,
+                "transition_pooling": "max",
+                "batch_norm": "batchnorm",
+                "include_top": true,
+                "efficient": false
+            }
+        },
+        {
+            "name": "20x_c3",
+            "path": "models/C3_20x.pth",
+            "type": "DenseUNet",
+            "args": {
+                "in_channels": 7,
+                "nb_classes": 1,
+                "init_conv_size": 3,
+                "init_conv_filters": 48,
+                "init_conv_stride": 1,
+                "down_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "bottleneck_layers": 4,
+                "up_blocks": [
+                    4,
+                    4,
+                    4,
+                    4
+                ],
+                "growth_rate": 12,
+                "compression": 1.0,
+                "dropout_rate": 0.2,
+                "upsampling_type": "pixelshuffle_blur",
+                "early_transition": false,
+                "transition_pooling": "max",
+                "batch_norm": "batchnorm",
+                "include_top": true,
+                "efficient": false
+            }
+        }
+    ],
+    "data": {
+        "dataset": "BaseTestDataset",
+        "crop_size": [
+            512,
+            512
+        ],
+        "folder": "/mnt/hdd2/datasets/astra_data_readonly/astra_data_readonly/",
+        "train_csv_file": "exp_stats/final_train.csv",
+        "valid_csv_file": "exp_stats/final_test.csv",
+        "test_csv_file": "exp_stats/test_split_1.csv",
+        "magnification": "20x",
+        "output_channel": "C1",
+        "batch_size": 4,
+        "shuffle": true,
+        "standardize": false,
+        "normalize": true,
+        "augmentations": null
+    }
+}

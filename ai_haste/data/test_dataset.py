@@ -7,6 +7,8 @@ import glob
 
 import albumentations as album
 
+from ..utils.read_images import DataProcessor
+from ..utils.make_split import groupby_fov, make_df
 
 stats_20x = pd.read_csv("exp_stats/20x_stats.csv")
 stats_40x = pd.read_csv("exp_stats/40x_stats.csv")
@@ -20,12 +22,14 @@ brighfield_means_60x = np.array(stats_60x.iloc[3:]["mean"])
 fluorecscent_means_60x = np.array(stats_60x.iloc[:3]["mean"])
 
 
-class BaseDataset(Dataset):
-    def __init__(self, config, csv_file, augment=True):
+class BaseTestDataset(Dataset):
+    def __init__(self, config, csv_file=None):
         self.folder = config["folder"]
+        self.magnification = config["magnification"]
+        self.make_data()
+
         self.standardize = config["standardize"]
         self.normalize = config["normalize"]
-        self.data = pd.read_csv(csv_file)
 
         if config["magnification"] != "all":
             self.data = self.data[
@@ -33,17 +37,24 @@ class BaseDataset(Dataset):
             ].reset_index(drop=True)
 
         self.output_channel = config["output_channel"]
-        self.augment = augment
-        if self.augment:
-            self.augmentations = load_augmentations(config["augmentations"])
-        else:
-            self.augmentations = None
+
+    def make_data(self):
+        magnifications = ("20x", "40x", "60x")
+        magnification_data = []
+        for magnification in magnifications:
+            data_folder = os.path.join(self.folder, f"{magnification}_images")
+            folder_processor = DataProcessor(data_folder)
+            if folder_processor.images:
+                well_images, _ = folder_processor.group_channels(
+                    groupby_prop=("well", "F")
+                )
+                magnification_data.append(make_df(well_images, magnification))
+        self.data = pd.concat(magnification_data)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-
         magnification = self.data.iloc[[idx]]["magnification"].item()
         mag_path = magnification + "_images"
         self.getstats(magnification)
@@ -58,13 +69,8 @@ class BaseDataset(Dataset):
 
         image = np.array(image).transpose(1, 2, 0).astype("float")
 
-        ## Get output patch of image and create target (either 3 channels or 1 channel)
         if self.output_channel != "all":
             target_name = self.data.iloc[[idx]][self.output_channel].item()
-            target_path = os.path.join(self.folder, mag_path, target_name,)
-
-            target = cv2.imread(target_path, -1).astype("float")
-
         else:
             channels = ("C1", "C2", "C3")
             target_name = []
@@ -72,11 +78,6 @@ class BaseDataset(Dataset):
             for channel in channels:
                 channel_name = self.data.iloc[[idx]][channel].item()
                 target_name.append(channel_name)
-                target_stack.append(
-                    cv2.imread(os.path.join(self.folder, mag_path, channel_name), -1,)
-                )
-            target = np.array(target_stack).transpose(1, 2, 0).astype("float")
-
         ## Standardization and Normalization
 
         if self.normalize:
@@ -89,19 +90,12 @@ class BaseDataset(Dataset):
                     self.fluorecscent_min[channel_idx],
                     self.fluorecscent_max[channel_idx],
                 ]
-                target = normalize_image(
-                    target,
-                    self.fluorecscent_min[channel_idx],
-                    self.fluorecscent_max[channel_idx],
-                )
             else:
                 preprocess_stats = [
                     self.fluorecscent_min,
                     self.fluorecscent_max,
                 ]
-                target = normalize_image(
-                    target, self.fluorecscent_min, self.fluorecscent_max
-                )
+
         else:
             if self.standardize:
                 preprocess_step = "standardize"
@@ -112,36 +106,24 @@ class BaseDataset(Dataset):
                         self.fluorecscent_means[channel_idx],
                         self.fluorecscent_stds[channel_idx],
                     ]
-                    target = (
-                        target - self.fluorecscent_means[channel_idx]
-                    ) / self.fluorecscent_stds[channel_idx]
-
                 else:
                     preprocess_stats = [
                         self.fluorecscent_means,
                         self.fluorecscent_stds,
                     ]
-                    target = (target - self.fluorecscent_means) / self.fluorecscent_stds
             else:
                 preprocess_step = None
                 image = image / 65536
 
-            target = target / 65536
-
-        ## Augmentations
-
-        if self.augmentations:
-            augmented = self.augmentations(image=image, mask=target)
-            image = augmented["image"]
-            target = augmented["mask"]
-
         image = image.transpose(2, 0, 1).astype(np.float32)
-        if len(target.shape) > 2:
-            target = target.transpose(2, 0, 1).astype(np.float32)
-        else:
-            target = target[np.newaxis, ...].astype(np.float32)
 
-        return image, target, target_name, preprocess_step, preprocess_stats
+        return (
+            image,
+            target_name,
+            preprocess_step,
+            preprocess_stats,
+            magnification,
+        )
 
     def getstats(self, magnification):
         if magnification == "20x":
