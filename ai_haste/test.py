@@ -16,7 +16,9 @@ def run(config):
         os.makedirs(exp_folder)
     magnification = config["data"]["magnification"]
     output_save_folder = os.path.join(exp_folder, f"{magnification}_images")
-
+    if not os.path.exists(output_save_folder):
+        os.makedirs(output_save_folder)
+    
     models = []
     for model_config in config["models"]:
         models.append(
