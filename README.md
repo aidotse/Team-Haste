@@ -82,6 +82,6 @@ https://drive.google.com/drive/u/0/folders/1E_Ekf-aOR8YYvodQNVXshK5WEzhSsu5k
 
 ### Inference Time
 Inference time can be measured in the 
-```tester/all_tester.py 
-```
+```tester/all_tester.py ```
+
 in ```AllChannelTester.infer_all_channels()``` function.
