@@ -56,108 +56,92 @@ class AllChannelTester:
 
                 input = sample[0].cuda().to(non_blocking=True)
 
-                output_mask, output, mask_op_softmax = self.infer_full_image(
-                    input, C_out,
-                )
+                output, mask_op_softmax = self.infer_all_channels(input)
 
-                if self.save_softmax:
-                    np.save(
-                        os.path.join(
-                            self.softmax_save_folder, f"softmax_{image_name[0]}",
-                        ),
-                        mask_op_softmax.astype(np.float32),
-                    )
-                    np.save(
-                        os.path.join(self.softmax_save_folder, f"mask_{image_name[0]}",),
-                        mask.cpu()
-                        .squeeze(0)
-                        .numpy()
-                        .transpose(1, 2, 0)
-                        .astype(np.float32),
-                    )
+                # self.write_output_images(
+                #     output[0],
+                #     target[0],
+                #     output_mask[0],
+                #     mask[0],
+                #     image_name,
+                #     preprocess_step[0],
+                #     preprocess_stats,
+                #     magnification[0],
+                # )
 
-                intersection = torch.logical_and(mask, output_mask)
-                union = torch.logical_or(mask, output_mask)
-                iou = torch.sum(intersection) / torch.sum(union)
-                ious.append(iou.item())
+    def infer_all_channels(self, input):
+        with torch.no_grad():
+            B, C, W, H = input.shape
+            pad_W = self.kernel_size - W % self.kernel_size
+            pad_H = self.kernel_size - H % self.kernel_size
 
-                output_8bit = (
-                    (output[0] * 255)
-                    .detach()
-                    .cpu()
-                    .numpy()
-                    .transpose(1, 2, 0)
-                    .astype("uint8")
-                )
-                target_8bit = (
-                    (target[0] * 255)
-                    .detach()
-                    .cpu()
-                    .numpy()
-                    .transpose(1, 2, 0)
-                    .astype("uint8")
-                )
+            input = F.pad(input, (0, pad_H, 0, pad_W), mode="reflect").squeeze(0)
+            _, W_padded, H_padded = input.shape
+            patches = input.unfold(1, self.kernel_size, self.stride).unfold(
+                2, self.kernel_size, self.stride
+            )
+            c, n_w, n_h, w, h = patches.shape
+            patches = patches.contiguous().view(c, -1, self.kernel_size, self.kernel_size)
 
-    def infer_full_image(self, input):
-        B, C, W, H = input.shape
-        pad_W = self.kernel_size - W % self.kernel_size
-        pad_H = self.kernel_size - H % self.kernel_size
+            fold = torch.nn.Fold(
+                output_size=(W_padded, H_padded),
+                kernel_size=(self.kernel_size, self.kernel_size),
+                stride=(self.stride, self.stride),
+            )
 
-        patch_weights, _, _ = compute_pyramid_patch_weight_loss(
-            self.kernel_size, self.kernel_size
-        )
+            patch_weights, _, _ = compute_pyramid_patch_weight_loss(
+                self.kernel_size, self.kernel_size
+            )
+            weights_op = (
+                torch.from_numpy(patch_weights)
+                .unsqueeze(0)
+                .unsqueeze(-1)
+                .repeat(1, self.c_out, 1, n_w * n_h)
+                .reshape(1, -1, n_w * n_h)
+            ).cuda()
 
-        input = F.pad(input, (0, pad_H, 0, pad_W), mode="reflect").squeeze(0)
-        _, W_pad, H_pad = input.shape
-        patches = input.unfold(1, kernel_size, self.stride).unfold(
-            2, self.kernel_size, self.stride
-        )
+            dataset = torch.utils.data.TensorDataset(patches.permute(1, 0, 2, 3))
+            batch_size = 1
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
 
-        c, n_w, n_h, w, h = patches.shape
-        patches = patches.contiguous().view(c, -1, self.kernel_size, self.kernel_size)
+            c1_ops = []
+            c2_ops = []
+            c3_ops = []
+            for batch_idx, sample_patch in enumerate(dataloader):
+                _, c1_op = self.models[0](sample_patch[0])
+                c2_op = self.models[1](sample_patch[0])
+                c3_op = self.models[2](sample_patch[0])
+                c1_ops.append(c1_op)
+                c2_ops.append(c2_op)
+                c3_ops.append(c3_op)
+            c1_ops = torch.cat(c1_ops).permute(1, 0, 2, 3)
+            c1_ops = c1_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
 
-        dataset = torch.utils.data.TensorDataset(patches.permute(1, 0, 2, 3))
-        batch_size = 8
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
-        op = []
-        mask_op = []
-        for batch_idx, sample1 in enumerate(dataloader):
-            patch_mask_op, patch_op = self.models[0](sample1[0])
-            patch_op = self.models[1](sample1[0])
-            patch_op = self.models[2](sample1[0])
-            op.append(patch_op)
-            mask_op.append(patch_mask_op)
-        op = torch.cat(op).permute(1, 0, 2, 3)
+            c2_ops = torch.cat(c2_ops).permute(1, 0, 2, 3)
+            c2_ops = c2_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
 
-        op = op.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
-        # weights = torch.ones_like(op)
-        weights_op = (
-            torch.from_numpy(patch_weights)
-            .unsqueeze(0)
-            .unsqueeze(-1)
-            .repeat(1, self.c_out, 1, n_w * n_h)
-            .reshape(1, -1, n_w * n_h)
-        ).cuda()
-        op = torch.mul(weights_op, op)
-        op = F.fold(
-            op,
-            output_size=(W_pad, H_pad),
-            kernel_size=(self.kernel_size, self.kernel_size),
-            stride=(self.stride, self.stride),
-        )
-        weights_op = F.fold(
-            weights_op,
-            output_size=(W_pad, H_pad),
-            kernel_size=(self.kernel_size, self.kernel_size),
-            stride=(self.stride, self.stride),
-        )
-        op = torch.divide(op, weights_op)
+            c3_ops = torch.cat(c3_ops).permute(1, 0, 2, 3)
+            c3_ops = c3_ops.permute(0, 2, 3, 1).reshape(1, -1, n_w * n_h)
 
-        mask_op_softmax = (
-            mask_op[:, :, :W, :H].squeeze(0).cpu().numpy().transpose(1, 2, 0)
-        )
-        output = output[:, :, :W, :H]
-        return output
+            c1_ops = torch.mul(weights_op, c1_ops)
+            c2_ops = torch.mul(weights_op, c2_ops)
+            c3_ops = torch.mul(weights_op, c3_ops)
+
+            c1_ops = fold(c1_ops)
+            c2_ops = fold(c2_ops)
+            c3_ops = fold(c3_ops)
+
+            weights_op = fold(weights_op)
+
+            c1_ops = torch.divide(c1_ops, weights_op)
+            c2_ops = torch.divide(c2_ops, weights_op)
+            c3_ops = torch.divide(c3_ops, weights_op)
+
+            c1_ops = c1_ops[:, :, :W, :H]
+            c2_ops = c2_ops[:, :, :W, :H]
+            c3_ops = c3_ops[:, :, :W, :H]
+
+        return c1_ops, c2_ops, c3_ops
 
     def write_output_images(
         self,
