@@ -52,7 +52,7 @@ On AZ server:
 
 To run the inference you run ai_haste as a module while specifying which config file to use. All configs for inference are located in the "config/test" folder for the different magnifications. The module will run inference on all models (1 model per channel) at the same time and write the result in a pre-specified output folder.
 
-To begin, download the models and put them in the "models" folder. Then edit each config file in "config/test" and specify the data path and the output path.
+To begin, download the models and put them in the "models" folder. Then edit each config file in "configs/test" and specify the data path and the output path.
 ```
 config
 │── "exp_folder":  <--- Path to output folder goes here            
@@ -72,7 +72,7 @@ python3 -m ai_haste -c configs/test/test_60x.json
 Training can be performed by changing selecting the data folders and magnifications and changing "run_mode" to "train" in the config and executed by
 
 ```
-python3 -m ai_haste -c configs/train/C1/C1_20x.json 
-python3 -m ai_haste -c configs/train/C2/C2_20x_pretrain.json 
-python3 -m ai_haste -c configs/train/C1/C3_20x_pretrain.json 
+python3 -m ai_haste -c /configs/train/C1/C1_20x.json 
+python3 -m ai_haste -c /configs/train/C2/C2_20x_pretrain.json 
+python3 -m ai_haste -c /configs/train/C1/C3_20x_pretrain.json 
 ```
