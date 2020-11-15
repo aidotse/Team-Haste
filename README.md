@@ -9,18 +9,16 @@ In this repository we provide the code base of our solution to the challenge hos
 │   ├── data                : python scripts for loading the datasets required
 │   ├── loss                : for loss functions not included in PyTorch
 │   ├── model               : python scripts for the various neural networks
-│   ├── test                : scripts requied when running the models in test mode
-│   ├── train               : scripts requied when running the models in train mode
+│   ├── tester              : scripts requied when running the models in test mode
+│   ├── trainer             : scripts requied when running the models in train mode
 │   └── utils               : utility functions (e.g. for converting the images to numpy arrays for faster data loading)
 ├── config
 │   ├── train               : .json files for running the models to reconstruct the three fluorescence channels
-│   │   ├── nuclei          
-│   │   ├── lipids
-│   │   └──  cytoplasm
-│   ├── test                : .json files for running the models in test mode for the three fluorescence channels
-│   │   ├── nuclei
-│   │   ├── lipids
-│   │   └──  cytoplasm
+│   │   ├── C1              : nuclei          
+│   │   ├── C2              : lipids
+│   │   └── C3              : cytoplasm
+│   └── test                : .json files for running the models in test mode for the three resolutions
+│                              (across all three fluorescence channels)
 ├── docker                  : files for Docker image construction and running
 └── exp_stats               : .csv files for image statistics and train/test splits 
     
