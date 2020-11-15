@@ -66,7 +66,7 @@ config
 
 Inference is then executed by:
 ```
-python3 -m ai_haste -c config_test_20x.json <- for 20x
-python3 -m ai_haste -c config_test_40x.json <- for 40x
-python3 -m ai_haste -c config_test_60x.json <- for 60x
+python3 -m ai_haste -c config_test_20x.json 
+python3 -m ai_haste -c config_test_40x.json 
+python3 -m ai_haste -c config_test_60x.json 
 ```
