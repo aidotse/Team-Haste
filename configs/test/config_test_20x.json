@@ -9,7 +9,6 @@
     },
     "models": [
         {
-            "name": "20x_c1",
             "path": "models/C1_20x.pth",
             "type": "DenseUNetLUPISkipSum",
             "args": {
@@ -44,7 +43,6 @@
             }
         },
         {
-            "name": "20x_c2",
             "path": "models/C2_20x.pth",
             "type": "DenseUNet",
             "args": {
@@ -78,7 +76,6 @@
             }
         },
         {
-            "name": "20x_c3",
             "path": "models/C3_20x.pth",
             "type": "DenseUNet",
             "args": {

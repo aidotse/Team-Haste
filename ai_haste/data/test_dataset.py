@@ -69,48 +69,29 @@ class BaseTestDataset(Dataset):
 
         image = np.array(image).transpose(1, 2, 0).astype("float")
 
-        if self.output_channel != "all":
-            target_name = self.data.iloc[[idx]][self.output_channel].item()
-        else:
-            channels = ("C1", "C2", "C3")
-            target_name = []
-            target_stack = []
-            for channel in channels:
-                channel_name = self.data.iloc[[idx]][channel].item()
-                target_name.append(channel_name)
+        channels = ("C1", "C2", "C3")
+        target_name = []
+        for channel in channels:
+            channel_name = self.data.iloc[[idx]][channel].item()
+            target_name.append(channel_name)
+        
         ## Standardization and Normalization
-
         if self.normalize:
             image = normalize_image(image, self.brightfield_min, self.brightfield_max)
             preprocess_step = "normalize"
-
-            if self.output_channel != "all":
-                channel_idx = channel_name_to_idx(self.output_channel)
-                preprocess_stats = [
-                    self.fluorecscent_min[channel_idx],
-                    self.fluorecscent_max[channel_idx],
-                ]
-            else:
-                preprocess_stats = [
-                    self.fluorecscent_min,
-                    self.fluorecscent_max,
-                ]
+            preprocess_stats = [
+                self.fluorecscent_min,
+                self.fluorecscent_max,
+            ]
 
         else:
             if self.standardize:
-                preprocess_step = "standardize"
                 image = (image - self.brightfield_means) / self.brightfield_stds
-                if self.output_channel != "all":
-                    channel_idx = channel_name_to_idx(self.output_channel)
-                    preprocess_stats = [
-                        self.fluorecscent_means[channel_idx],
-                        self.fluorecscent_stds[channel_idx],
-                    ]
-                else:
-                    preprocess_stats = [
-                        self.fluorecscent_means,
-                        self.fluorecscent_stds,
-                    ]
+                preprocess_step = "standardize"
+                preprocess_stats = [
+                    self.fluorecscent_means,
+                    self.fluorecscent_stds,
+                ]
             else:
                 preprocess_step = None
                 image = image / 65536
