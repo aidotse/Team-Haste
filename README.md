@@ -64,9 +64,9 @@ config
 
 Inference is then executed by:
 ```
-python3 -m ai_haste -c config_test_20x.json 
-python3 -m ai_haste -c config_test_40x.json 
-python3 -m ai_haste -c config_test_60x.json 
+python3 -m ai_haste -c configs/test/test_20x.json 
+python3 -m ai_haste -c configs/test/test_40x.json 
+python3 -m ai_haste -c configs/test/test_60x.json 
 ```
 ## Training
 Training can be performed by changing selecting the data folders and magnifications and changing "run_mode" to "train" in the config and executed by
