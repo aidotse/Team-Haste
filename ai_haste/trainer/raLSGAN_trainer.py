@@ -190,8 +190,6 @@ class raLSGANTrainer:
         
             with torch.no_grad():
                 fake = self.generator(input.float())
-                # if 'NonWeightedBCELogitsLoss' in [x["loss"].__class__.__name__ for x in criterions]:
-                #     fake = nn.Sigmoid()(fake)
 
             pred_fake = self.discriminator(torch.cat([input, fake.detach()],1))
 
@@ -217,15 +215,14 @@ class raLSGANTrainer:
             optimizer_G.zero_grad()
 
             output = self.generator(input.float())
-            #output = torch.clamp(output, 0.0, 1.0)
 
             pred_fake = self.discriminator(torch.cat([input, output],1))
             pred_real = self.discriminator(torch.cat([input, target.float()],1))
 
             # Adversarial loss
 
-            loss_GAN = (torch.mean((pred_real - torch.mean(self.fake_pool.query()) - 1) ** 2) +
-                    torch.mean((pred_fake - torch.mean(self.real_pool.query()) + 1) ** 2)) / 2  
+            loss_GAN = (torch.mean((pred_real - torch.mean(self.fake_pool.query()) + 1) ** 2) +
+                    torch.mean((pred_fake - torch.mean(self.real_pool.query()) - 1) ** 2)) / 2  
             
             losses = []
             loss = 0
@@ -308,9 +305,6 @@ class raLSGANTrainer:
 
                 output = self.infer_full_image(input, C_out)
 
-                # if 'NonWeightedBCELogitsLoss' in [x["loss"].__class__.__name__ for x in criterions]:
-                #     output = nn.Sigmoid()(output)
-
                 losses = []
                 loss = 0
                 for i, criterion in enumerate(criterions):
@@ -364,7 +358,7 @@ class raLSGANTrainer:
         op = op.permute(0, 1, 3, 2, 4).contiguous()
         op = op.view(C_out, output_h, output_w)
 
-        output = op#torch.clamp(op, 0.0, 1.0)
+        output = op
         output = output[:, :W, :H].unsqueeze(0)
         return output
 
