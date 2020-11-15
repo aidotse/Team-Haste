@@ -25,7 +25,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         "-c",
         "--conf",
-        default="configs/config_test_20x.json",
+        default="configs/test/config_test_20x.json",
         help="path to configuration file",
     )
     args = argparser.parse_args()
