@@ -48,7 +48,8 @@ On AZ server:
 ### Connect to the kernel
 `sudo docker run -it 3h4m/haste bash`
 
-```
+---
+``
 ## Running inference
 
 To run the inference you run ai_haste as a module while specifying which config file to use. All configs for inference are located in the "config/test" folder for the different magnifications. The module will run inference on all models (1 model per channel) at the same time and write the result in a pre-specified output folder.
