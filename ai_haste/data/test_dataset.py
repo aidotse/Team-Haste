@@ -36,8 +36,6 @@ class BaseTestDataset(Dataset):
                 self.data["magnification"] == config["magnification"]
             ].reset_index(drop=True)
 
-        self.output_channel = config["output_channel"]
-
     def make_data(self):
         magnifications = ("20x", "40x", "60x")
         magnification_data = []

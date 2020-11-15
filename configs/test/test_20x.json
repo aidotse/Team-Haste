@@ -6,7 +6,7 @@
         "tester": "AllChannelTester",
         "kernel_shape": 512,
         "stride": 256,
-        "patch_batch_size": 8
+        "patch_batch_size": 16
     },
     "models": [
         {
@@ -121,7 +121,6 @@
         "valid_csv_file": "exp_stats/final_test.csv",
         "test_csv_file": "exp_stats/test_split_1.csv",
         "magnification": "20x",
-        "output_channel": "C1",
         "batch_size": 4,
         "shuffle": true,
         "standardize": false,
