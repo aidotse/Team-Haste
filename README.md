@@ -55,8 +55,8 @@ To run the inference you run ai_haste as a module while specifying which config 
 To begin, download the models and put them in the "models" folder. Then edit each config file in "config/test" and specify the data path and the output path.
 ```
 config
-│── "test"             
-│   ├── "output_folder":"output" <--- Path to output folder goes here
+│── "exp_folder":  <--- Path to output folder goes here            
+│   │
 │   │
 │── "data"             
 │   ├── "folder":"" <--- Path to data folder goes here
